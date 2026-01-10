@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Фотостудия - Главная{% endblock %}
+
+{% block content %}
+<!-- Hero Banner -->
+<section class="hero-section bg-primary text-white py-5">
+    <div class="container py-5">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold">ФотоСтудия "Момент"</h1>
+                <p class="lead">Создаем незабываемые воспоминания через искусство фотографии. Профессиональные фотосессии любой сложности.</p>
+                <a href="{{ url_for('services') }}" class="btn btn-light btn-lg">Выбрать съемку</a>
+            </div>
+            <div class="col-lg-6">
+                <img src="https://via.placeholder.com/600x400/457b9d/ffffff?text=Фотосессия" alt="Фотосессия" class="img-fluid rounded shadow">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Popular Categories -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Популярные тематики</h2>
+        <div class="row">
+            {% for category in categories %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    {% if category.image_filename %}
+                    <img src="{{ url_for('static', filename='uploads/' + category.image_filename) }}" class="card-img-top" alt="{{ category.name }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                    <img src="https://via.placeholder.com/400x200/e9ecef/6c757d?text={{ category.name|urlencode }}" class="card-img-top" alt="{{ category.name }}" style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ category.name }}</h5>
+                        <p class="card-text">{{ category.description[:100] }}{% if category.description|length > 100 %}...{% endif %}</p>
+                        <a href="{{ url_for('services') }}" class="btn btn-primary">Подробнее</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Advantages -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Наши преимущества</h2>
+        <div class="row g-4">
+            <div class="col-md-4 text-center">
+                <div class="p-4 bg-white rounded shadow-sm">
+                    <i class="bi bi-camera display-4 text-primary mb-3"></i>
+                    <h4>Профессиональное оборудование</h4>
+                    <p>Используем современные камеры и студийное освещение для идеального результата</p>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="p-4 bg-white rounded shadow-sm">
+                    <i class="bi bi-award display-4 text-primary mb-3"></i>
+                    <h4>Опытные фотографы</h4>
+                    <p>Наши специалисты имеют многолетний опыт и творческий подход к каждому проекту</p>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="p-4 bg-white rounded shadow-sm">
+                    <i class="bi bi-heart display-4 text-primary mb-3"></i>
+                    <h4>Индивидуальный подход</h4>
+                    <p>Каждая съемка уникальна и создается с учетом ваших предпочтений и пожеланий</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Portfolio Gallery -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Наши лучшие работы</h2>
+        <div class="row g-3">
+            {% for item in portfolio_items %}
+            <div class="col-md-4 col-sm-6">
+                <div class="gallery-item position-relative overflow-hidden rounded">
+                    <img src="{{ url_for('static', filename='uploads/' + item.image_filename) }}" class="img-fluid gallery-image" alt="{{ item.title }}" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ url_for('static', filename='uploads/' + item.image_filename) }}" data-title="{{ item.title }}">
+                    <div class="overlay d-flex align-items-center justify-content-center">
+                        <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ url_for('static', filename='uploads/' + item.image_filename) }}" data-title="{{ item.title }}">
+                            <i class="bi bi-search"></i> Посмотреть
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Quick Request Form -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">Быстрая заявка</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('submit_request') }}">
+                            {{ quick_request_form.hidden_tag() }}
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ quick_request_form.client_name.label(class="form-label") }}
+                                    {{ quick_request_form.client_name(class="form-control") }}
+                                    {% if quick_request_form.client_name.errors %}
+                                        <div class="text-danger">
+                                            {% for error in quick_request_form.client_name.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ quick_request_form.phone.label(class="form-label") }}
+                                    {{ quick_request_form.phone(class="form-control") }}
+                                    {% if quick_request_form.phone.errors %}
+                                        <div class="text-danger">
+                                            {% for error in quick_request_form.phone.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                {{ quick_request_form.category_id.label(class="form-label") }}
+                                {{ quick_request_form.category_id(class="form-select") }}
+                                {% if quick_request_form.category_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in quick_request_form.category_id.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Отправить заявку</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalTitle">Просмотр изображения</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" class="img-fluid" alt="">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle gallery image clicks
+    const galleryImages = document.querySelectorAll('.gallery-image');
+    galleryImages.forEach(img => {
+        img.addEventListener('click', function() {
+            const imageSrc = this.getAttribute('data-image');
+            const title = this.getAttribute('data-title');
+            document.getElementById('modalImage').src = imageSrc;
+            document.getElementById('imageModalTitle').textContent = title;
+        });
+    });
+
+    // Also handle buttons in overlay
+    const overlayButtons = document.querySelectorAll('[data-bs-toggle="modal"]');
+    overlayButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const imageSrc = this.getAttribute('data-image');
+            const title = this.getAttribute('data-title');
+            document.getElementById('modalImage').src = imageSrc;
+            document.getElementById('imageModalTitle').textContent = title;
+        });
+    });
+});
+</script>
+{% endblock %}

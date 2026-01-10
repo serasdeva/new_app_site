@@ -1,0 +1,99 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}Админ-панель - Категории{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Дашборд
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('admin_categories') }}">
+                            <i class="bi bi-tags"></i> Категории услуг
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_portfolio') }}">
+                            <i class="bi bi-images"></i> Портфолио
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_reviews') }}">
+                            <i class="bi bi-chat-square-text"></i> Отзывы
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_requests') }}">
+                            <i class="bi bi-envelope"></i> Заявки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                            <i class="bi bi-box-arrow-right"></i> Выйти
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Управление категориями</h1>
+                <a href="{{ url_for('admin_add_category') }}" class="btn btn-primary">Добавить категорию</a>
+            </div>
+
+            {% if categories %}
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Описание</th>
+                            <th>Продолжительность</th>
+                            <th>Цена</th>
+                            <th>Изображение</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in categories %}
+                        <tr>
+                            <td>{{ category.id }}</td>
+                            <td>{{ category.name }}</td>
+                            <td>{{ category.description[:50] }}{% if category.description|length > 50 %}...{% endif %}</td>
+                            <td>{{ category.duration or 'Не указана' }}</td>
+                            <td>{{ category.price or 'Не указана' }}</td>
+                            <td>
+                                {% if category.image_filename %}
+                                <img src="{{ url_for('static', filename='uploads/' + category.image_filename) }}" alt="{{ category.name }}" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                <span class="text-muted">Нет изображения</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin_edit_category', id=category.id) }}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+                                <form method="POST" action="{{ url_for('admin_delete_category', id=category.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию? Это также удалит все связанные работы в портфолио.')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p>Нет категорий. <a href="{{ url_for('admin_add_category') }}">Добавить первую категорию</a></p>
+            {% endif %}
+        </main>
+    </div>
+</div>
+{% endblock %}

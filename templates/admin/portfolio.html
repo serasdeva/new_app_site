@@ -1,0 +1,79 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}Админ-панель - Портфолио{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Дашборд
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_categories') }}">
+                            <i class="bi bi-tags"></i> Категории услуг
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('admin_portfolio') }}">
+                            <i class="bi bi-images"></i> Портфолио
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_reviews') }}">
+                            <i class="bi bi-chat-square-text"></i> Отзывы
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_requests') }}">
+                            <i class="bi bi-envelope"></i> Заявки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                            <i class="bi bi-box-arrow-right"></i> Выйти
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Управление портфолио</h1>
+                <a href="{{ url_for('admin_add_portfolio') }}" class="btn btn-primary">Добавить работу</a>
+            </div>
+
+            {% if portfolio_items %}
+            <div class="row">
+                {% for item in portfolio_items %}
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <img src="{{ url_for('static', filename='uploads/' + item.image_filename) }}" class="card-img-top" alt="{{ item.title }}" style="height: 200px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ item.title }}</h5>
+                            <p class="card-text"><small class="text-muted">{{ item.category.name }}</small></p>
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ url_for('admin_edit_portfolio', id=item.id) }}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+                                <form method="POST" action="{{ url_for('admin_delete_portfolio', id=item.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту работу?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>Нет работ в портфолио. <a href="{{ url_for('admin_add_portfolio') }}">Добавить первую работу</a></p>
+            {% endif %}
+        </main>
+    </div>
+</div>
+{% endblock %}

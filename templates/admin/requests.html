@@ -1,0 +1,85 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}Админ-панель - Заявки{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Дашборд
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_categories') }}">
+                            <i class="bi bi-tags"></i> Категории услуг
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_portfolio') }}">
+                            <i class="bi bi-images"></i> Портфолио
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_reviews') }}">
+                            <i class="bi bi-chat-square-text"></i> Отзывы
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('admin_requests') }}">
+                            <i class="bi bi-envelope"></i> Заявки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                            <i class="bi bi-box-arrow-right"></i> Выйти
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Управление заявками</h1>
+            </div>
+
+            {% if requests %}
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя клиента</th>
+                            <th>Телефон</th>
+                            <th>Категория</th>
+                            <th>Сообщение</th>
+                            <th>Дата</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in requests %}
+                        <tr>
+                            <td>{{ request.id }}</td>
+                            <td>{{ request.client_name }}</td>
+                            <td>{{ request.phone or 'Не указан' }}</td>
+                            <td>{{ request.category.name if request.category else 'Не указана' }}</td>
+                            <td>{{ request.message[:100] if request.message else 'Нет сообщения' }}{% if request.message and request.message|length > 100 %}...{% endif %}</td>
+                            <td>{{ request.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p>Нет заявок</p>
+            {% endif %}
+        </main>
+    </div>
+</div>
+{% endblock %}
