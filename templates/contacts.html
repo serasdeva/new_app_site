@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Контакты - Фотостудия{% endblock %}
+
+{% block content %}
+<!-- Contacts Header -->
+<section class="py-5 bg-primary text-white">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h1 class="display-4 fw-bold">Контакты</h1>
+                <p class="lead">Свяжитесь с нами для заказа фотосессии</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Information -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 mb-5 mb-lg-0">
+                <h2>Контактная информация</h2>
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-telephone display-4 text-primary mb-3"></i>
+                                <h5>Телефон</h5>
+                                <p class="mb-0">+7 (XXX) XXX-XX-XX</p>
+                                <p class="text-muted small">Ежедневно с 9:00 до 21:00</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-envelope display-4 text-primary mb-3"></i>
+                                <h5>Email</h5>
+                                <p class="mb-0">info@fotostudio.ru</p>
+                                <p class="text-muted small">Ответим в течение 24 часов</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-geo-alt display-4 text-primary mb-3"></i>
+                                <h5>Адрес</h5>
+                                <p class="mb-0">г. Москва</p>
+                                <p class="mb-0">ул. Фотографическая, 15</p>
+                                <p class="text-muted small">Студия находится в центре города</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-clock display-4 text-primary mb-3"></i>
+                                <h5>Режим работы</h5>
+                                <p class="mb-0">Пн-Пт: 9:00 - 21:00</p>
+                                <p class="mb-0">Сб-Вс: 10:00 - 20:00</p>
+                                <p class="text-muted small">По предварительной записи</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <h2>Написать нам</h2>
+                <div class="card shadow">
+                    <div class="card-body">
+                        <form method="POST">
+                            {{ form.hidden_tag() }}
+                            <div class="mb-3">
+                                {{ form.client_name.label(class="form-label") }}
+                                {{ form.client_name(class="form-control") }}
+                                {% if form.client_name.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.client_name.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                {{ form.email.label(class="form-label") }}
+                                {{ form.email(class="form-control") }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.email.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                {{ form.message.label(class="form-label") }}
+                                {{ form.message(class="form-control", rows="5") }}
+                                {% if form.message.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.message.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Отправить сообщение</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Map Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="text-center mb-4">Как нас найти</h2>
+                <div class="ratio ratio-16x9">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2245.497000174699!2d37.61749531585827!3d55.75582598055601!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46b54a5c2c0f3d7d%3A0x5f5b5c5c5c5c5c5c!2z0JzQvtGA0LrQsNGA0L7QstCw!5e0!3m2!1sru!2sru!4v1234567890123!5m2!1sru!2sru" width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}О нас - Фотостудия{% endblock %}
+
+{% block content %}
+<!-- About Header -->
+<section class="py-5 bg-primary text-white">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h1 class="display-4 fw-bold">О нашей студии</h1>
+                <p class="lead">Профессиональная фотосъемка с индивидуальным подходом</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- About Content -->
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <img src="https://via.placeholder.com/600x400/457b9d/ffffff?text=Фотограф" alt="Фотограф" class="img-fluid rounded shadow">
+            </div>
+            <div class="col-lg-6">
+                <h2>Профессиональная фотосъемка с душой</h2>
+                <p>Наша студия работает на рынке фотографических услуг более 10 лет. За это время мы сняли тысячи важных моментов жизни наших клиентов - от первых шагов малышей до свадебных церемоний, от корпоративных событий до художественных портретов.</p>
+                <p>Мы верим, что каждая фотография должна передавать эмоции и сохранять воспоминания на долгие годы. Наши фотографы - не просто технически подкованные специалисты, а настоящие художники, способные увидеть красоту в обыденных моментах.</p>
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle-fill text-success"></i> Опыт работы более 10 лет</li>
+                            <li><i class="bi bi-check-circle-fill text-success"></i> Современное оборудование</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle-fill text-success"></i> Индивидуальный подход</li>
+                            <li><i class="bi bi-check-circle-fill text-success"></i> Профессиональная ретушь</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Photographer Info -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2>Наш фотограф</h2>
+                <p class="lead">Александр Петров - главный фотограф студии</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card shadow">
+                    <div class="card-body p-5">
+                        <div class="row align-items-center">
+                            <div class="col-md-4 text-center mb-4 mb-md-0">
+                                <img src="https://via.placeholder.com/300x300/457b9d/ffffff?text=Александр" alt="Александр Петров" class="rounded-circle img-fluid">
+                            </div>
+                            <div class="col-md-8">
+                                <h4>Александр Петров</h4>
+                                <p class="text-muted">Главный фотограф</p>
+                                <p>Обладатель множества наград в области фотографии. Работал с известными личностями, моделями и брендами. Его работы публиковались в ведущих журналах по всему миру.</p>
+                                <p>Специализируется на портретной, свадебной и Love Story съемке. Всегда стремится найти уникальный ракурс и запечатлеть самый важный момент.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2>Отзывы клиентов</h2>
+                <p class="lead">Что говорят наши клиенты о работе с нами</p>
+            </div>
+        </div>
+        <div class="row">
+            {% for review in reviews %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-warning mb-2">
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                        </div>
+                        <p class="card-text italic">"{{ review.text }}"</p>
+                        <div class="mt-3">
+                            <h6 class="mb-0">{{ review.client_name }}</h6>
+                            <small class="text-muted">{{ review.date.strftime('%d.%m.%Y') }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.italic { font-style: italic; }
+</style>
+{% endblock %}
