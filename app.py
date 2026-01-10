@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField, FileField, PasswordField
@@ -65,7 +65,6 @@ class QuickRequestForm(FlaskForm):
 
 class ContactForm(FlaskForm):
     client_name = StringField('Ваше имя', validators=[DataRequired(), Length(min=2, max=100)])
-    email = StringField('Email', validators=[DataRequired()])
     message = TextAreaField('Сообщение', validators=[DataRequired()])
 
 class LoginForm(FlaskForm):
@@ -126,7 +125,6 @@ def contacts():
         contact_request = Request(
             client_name=form.client_name.data,
             phone="",
-            email=form.email.data,
             message=form.message.data
         )
         db.session.add(contact_request)
