@@ -1,16 +1,19 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, FileField, PasswordField
+from wtforms import StringField, TextAreaField, SelectField, FileField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Length
+from wtforms import ValidationError
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 import json
 
+import secrets
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = secrets.token_hex(16)  # Generate a random secret key
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///photostudio.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 db = SQLAlchemy(app)
@@ -70,6 +73,21 @@ class ContactForm(FlaskForm):
 class LoginForm(FlaskForm):
     username = StringField('Логин', validators=[DataRequired()])
     password = PasswordField('Пароль', validators=[DataRequired()])
+
+class RegistrationForm(FlaskForm):
+    username = StringField('Имя пользователя', validators=[DataRequired(), Length(min=4, max=20)])
+    password = PasswordField('Пароль', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Подтвердите пароль', validators=[DataRequired(), Length(min=6)])
+    submit = SubmitField('Зарегистрироваться')
+    
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user:
+            raise ValidationError('Это имя пользователя уже занято.')
+    
+    def validate_confirm_password(self, confirm_password):
+        if self.password.data != confirm_password.data:
+            raise ValidationError('Пароли не совпадают.')
 
 class CategoryForm(FlaskForm):
     name = StringField('Название', validators=[DataRequired(), Length(max=100)])
@@ -159,12 +177,23 @@ def admin_login():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.check_password(form.password.data):
             # Store admin session info
-            from flask import session
             session['admin_logged_in'] = True
             return redirect(url_for('admin_dashboard'))
         else:
             flash('Неверный логин или пароль', 'error')
     return render_template('admin/login.html', form=form)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(username=form.username.data)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('Регистрация прошла успешно! Теперь вы можете войти.', 'success')
+        return redirect(url_for('admin_login'))
+    return render_template('admin/register.html', form=form)
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
@@ -425,7 +454,6 @@ def admin_requests():
 
 @app.route('/admin/logout')
 def admin_logout():
-    from flask import session
     session.pop('admin_logged_in', None)
     return redirect(url_for('index'))
 
