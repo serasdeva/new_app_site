@@ -19,11 +19,32 @@
 <section class="py-4 bg-light">
     <div class="container">
         <div class="row">
-            <div class="col-12 text-center">
-                <button class="btn btn-outline-primary active me-2 mb-2" data-category="0">Все</button>
-                {% for category in categories %}
-                <button class="btn btn-outline-primary me-2 mb-2" data-category="{{ category.id }}">{{ category.name }}</button>
-                {% endfor %}
+            <div class="col-md-4 mb-3">
+                <label for="categoryFilter" class="form-label">Фильтр по категории:</label>
+                <select id="categoryFilter" class="form-select">
+                    <option value="0" {% if current_category == 0 %}selected{% endif %}>Все категории</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if current_category == category.id %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="galleryFilter" class="form-label">Фильтр по галерее:</label>
+                <select id="galleryFilter" class="form-select">
+                    <option value="0" {% if current_gallery == 0 %}selected{% endif %}>Все галереи</option>
+                    {% for gallery in galleries %}
+                    <option value="{{ gallery.id }}" {% if current_gallery == gallery.id %}selected{% endif %}>{{ gallery.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="tagFilter" class="form-label">Фильтр по тегу:</label>
+                <select id="tagFilter" class="form-select">
+                    <option value="" {% if not current_tag %}selected{% endif %}>Все теги</option>
+                    {% for tag in tags %}
+                    <option value="{{ tag.name }}" {% if current_tag == tag.name %}selected{% endif %}>{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
     </div>
@@ -34,22 +55,66 @@
     <div class="container">
         <div class="row" id="portfolioContainer">
             {% for item in portfolio_items %}
-            <div class="col-md-4 col-sm-6 portfolio-item" data-category="{{ item.category.id }}">
+            <div class="col-md-4 col-sm-6 portfolio-item" data-category="{{ item.category.id }}" data-gallery="{{ item.gallery.id if item.gallery else 0 }}" data-tags="{% for tag in item.tags %}{{ tag.name }}{% if not loop.last %},{% endif %}{% endfor %}">
                 <div class="gallery-item position-relative overflow-hidden rounded mb-4">
-                    <img src="{{ url_for('static', filename='uploads/' + item.image_filename) }}" class="img-fluid portfolio-image" alt="{{ item.title }}" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ url_for('static', filename='uploads/' + item.image_filename) }}" data-title="{{ item.title }}">
+                    <img src="{{ url_for('static', filename='uploads/' + item.image_filename) }}" class="img-fluid portfolio-image" alt="{{ item.title }}" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ url_for('static', filename='uploads/' + item.image_filename) }}" data-title="{{ item.title }}" data-description="{{ item.description }}">
                     <div class="overlay d-flex align-items-center justify-content-center">
-                        <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ url_for('static', filename='uploads/' + item.image_filename) }}" data-title="{{ item.title }}">
+                        <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ url_for('static', filename='uploads/' + item.image_filename) }}" data-title="{{ item.title }}" data-description="{{ item.description }}">
                             <i class="bi bi-search"></i> Посмотреть
                         </button>
                     </div>
                     <div class="p-2 text-center">
                         <h6 class="mb-0">{{ item.title }}</h6>
                         <small class="text-muted">{{ item.category.name }}</small>
+                        {% if item.description %}
+                        <p class="small mt-1">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>
+            {% else %}
+            <div class="col-12">
+                <p class="text-center">Нет работ для отображения.</p>
+            </div>
             {% endfor %}
         </div>
+        
+        <!-- Pagination -->
+        {% if pagination.pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('portfolio', page=pagination.prev_num, category_id=request.args.get('category_id', 0), gallery_id=request.args.get('gallery_id', 0), tag=request.args.get('tag', '')) }}">Предыдущая</a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in pagination.iter_pages() %}
+                {% if page_num %}
+                {% if page_num != pagination.page %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('portfolio', page=page_num, category_id=request.args.get('category_id', 0), gallery_id=request.args.get('gallery_id', 0), tag=request.args.get('tag', '')) }}">{{ page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+                {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('portfolio', page=pagination.next_num, category_id=request.args.get('category_id', 0), gallery_id=request.args.get('gallery_id', 0), tag=request.args.get('tag', '')) }}">Следующая</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     </div>
 </section>
 
@@ -63,6 +128,10 @@
             </div>
             <div class="modal-body text-center">
                 <img id="modalImage" src="" class="img-fluid" alt="">
+                <div class="mt-3">
+                    <h5 id="modalImageTitle"></h5>
+                    <p id="modalImageDescription"></p>
+                </div>
             </div>
         </div>
     </div>
@@ -78,45 +147,49 @@ document.addEventListener('DOMContentLoaded', function() {
         img.addEventListener('click', function() {
             const imageSrc = this.getAttribute('data-image');
             const title = this.getAttribute('data-title');
+            const description = this.getAttribute('data-description');
             document.getElementById('modalImage').src = imageSrc;
-            document.getElementById('imageModalTitle').textContent = title;
+            document.getElementById('modalImageTitle').textContent = title;
+            document.getElementById('modalImageDescription').textContent = description || '';
         });
     });
 
     // Handle filter buttons
-    const filterButtons = document.querySelectorAll('[data-category]');
-    const portfolioItems = document.querySelectorAll('.portfolio-item');
-
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Remove active class from all buttons
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            // Add active class to clicked button
-            this.classList.add('active');
-
-            const categoryId = parseInt(this.getAttribute('data-category'));
-
-            portfolioItems.forEach(item => {
-                const itemCategoryId = parseInt(item.getAttribute('data-category'));
-                
-                if (categoryId === 0 || itemCategoryId === categoryId) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
-    });
-
-    // Also handle buttons in overlay
     const overlayButtons = document.querySelectorAll('[data-bs-toggle="modal"]');
     overlayButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const imageSrc = this.getAttribute('data-image');
             const title = this.getAttribute('data-title');
+            const description = this.getAttribute('data-description');
             document.getElementById('modalImage').src = imageSrc;
             document.getElementById('imageModalTitle').textContent = title;
+            document.getElementById('modalImageTitle').textContent = title;
+            document.getElementById('modalImageDescription').textContent = description || '';
         });
+    });
+
+    // Category filter
+    document.getElementById('categoryFilter').addEventListener('change', function() {
+        const categoryId = this.value;
+        const galleryId = document.getElementById('galleryFilter').value;
+        const tagValue = document.getElementById('tagFilter').value;
+        window.location.href = `?category_id=${categoryId}&gallery_id=${galleryId}&tag=${tagValue}`;
+    });
+
+    // Gallery filter
+    document.getElementById('galleryFilter').addEventListener('change', function() {
+        const galleryId = this.value;
+        const categoryId = document.getElementById('categoryFilter').value;
+        const tagValue = document.getElementById('tagFilter').value;
+        window.location.href = `?category_id=${categoryId}&gallery_id=${galleryId}&tag=${tagValue}`;
+    });
+
+    // Tag filter
+    document.getElementById('tagFilter').addEventListener('change', function() {
+        const tagValue = this.value;
+        const categoryId = document.getElementById('categoryFilter').value;
+        const galleryId = document.getElementById('galleryFilter').value;
+        window.location.href = `?category_id=${categoryId}&gallery_id=${galleryId}&tag=${tagValue}`;
     });
 });
 </script>

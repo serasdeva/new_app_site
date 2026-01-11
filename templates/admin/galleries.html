@@ -1,0 +1,47 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}Управление галереями{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Галереи</h2>
+        <a href="{{ url_for('admin_add_gallery') }}" class="btn btn-primary">Добавить галерею</a>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <div class="row">
+        {% for gallery in galleries %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ gallery.name }}</h5>
+                    <p class="card-text">{{ gallery.description or 'Нет описания' }}</p>
+                    <p class="card-text"><small class="text-muted">{{ gallery.created_at.strftime('%d.%m.%Y') }}</small></p>
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('admin_edit_gallery', id=gallery.id) }}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+                        <form method="POST" action="{{ url_for('admin_delete_gallery', id=gallery.id) }}" style="display:inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту галерею?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <p>Нет созданных галерей.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
