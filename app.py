@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from wtforms import StringField, TextAreaField, SelectField, FileField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Length
 from wtforms import ValidationError
@@ -9,26 +12,51 @@ from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 import json
-
 import secrets
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = secrets.token_hex(16)  # Generate a random secret key
+app.config['SECRET_KEY'] = 'your-super-secret-key-here-change-this-in-production'  # Fixed secret key
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///photostudio.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
+
+# Initialize extensions
 db = SQLAlchemy(app)
+csrf = CSRFProtect(app)
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 # Models
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(120), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)  # Flag to identify admin users
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+class Gallery(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref=db.backref('galleries', lazy=True))
+
+class PhotoTag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+
+photo_tags = db.Table('photo_tags',
+    db.Column('photo_id', db.Integer, db.ForeignKey('portfolio_item.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('photo_tag.id'), primary_key=True)
+)
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -41,15 +69,36 @@ class Category(db.Model):
 class PortfolioItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)  # New field for photo description
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    gallery_id = db.Column(db.Integer, db.ForeignKey('gallery.id'))  # New field for gallery association
     image_filename = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # New field for sorting
     category = db.relationship('Category', backref=db.backref('portfolio_items', lazy=True))
+    gallery = db.relationship('Gallery', backref=db.backref('photos', lazy=True))
+    tags = db.relationship('PhotoTag', secondary=photo_tags, lazy='subquery',
+                           backref=db.backref('photos', lazy=True))
 
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     client_name = db.Column(db.String(100), nullable=False)
     text = db.Column(db.Text, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    author_name = db.Column(db.String(100), nullable=False)
+    text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    portfolio_item_id = db.Column(db.Integer, db.ForeignKey('portfolio_item.id'), nullable=False)
+    portfolio_item = db.relationship('PortfolioItem', backref=db.backref('comments', lazy=True))
+
+class Rating(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    score = db.Column(db.Integer, nullable=False)  # 1-5 rating
+    user_ip = db.Column(db.String(45))  # Store IP to prevent multiple ratings
+    portfolio_item_id = db.Column(db.Integer, db.ForeignKey('portfolio_item.id'), nullable=False)
+    portfolio_item = db.relationship('PortfolioItem', backref=db.backref('ratings', lazy=True))
 
 class Request(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -76,14 +125,28 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     username = StringField('Имя пользователя', validators=[DataRequired(), Length(min=4, max=20)])
-    password = PasswordField('Пароль', validators=[DataRequired(), Length(min=6)])
-    confirm_password = PasswordField('Подтвердите пароль', validators=[DataRequired(), Length(min=6)])
+    password = PasswordField('Пароль', validators=[DataRequired(), Length(min=8)])
+    confirm_password = PasswordField('Подтвердите пароль', validators=[DataRequired()])
     submit = SubmitField('Зарегистрироваться')
     
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
         if user:
             raise ValidationError('Это имя пользователя уже занято.')
+    
+    def validate_password(self, password):
+        # Check password complexity: at least 8 characters, with uppercase, lowercase, digit, and special character
+        pwd = password.data
+        if len(pwd) < 8:
+            raise ValidationError('Пароль должен содержать не менее 8 символов.')
+        
+        has_upper = any(c.isupper() for c in pwd)
+        has_lower = any(c.islower() for c in pwd)
+        has_digit = any(c.isdigit() for c in pwd)
+        has_special = any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in pwd)
+        
+        if not (has_upper and has_lower and has_digit and has_special):
+            raise ValidationError('Пароль должен содержать хотя бы одну заглавную букву, одну строчную букву, одну цифру и один специальный символ.')
     
     def validate_confirm_password(self, confirm_password):
         if self.password.data != confirm_password.data:
@@ -98,8 +161,22 @@ class CategoryForm(FlaskForm):
 
 class PortfolioForm(FlaskForm):
     title = StringField('Название', validators=[DataRequired(), Length(max=200)])
+    description = TextAreaField('Описание', validators=[Length(max=500)])  # New field for description
     category_id = SelectField('Категория', coerce=int, validators=[DataRequired()])
+    gallery_id = SelectField('Галерея', coerce=int)  # New field for gallery selection
+    tags = StringField('Теги (через запятую)', validators=[Length(max=200)])  # Field for tags
     image = FileField('Изображение', validators=[DataRequired()])
+
+class GalleryForm(FlaskForm):
+    name = StringField('Название галереи', validators=[DataRequired(), Length(max=100)])
+    description = TextAreaField('Описание', validators=[Length(max=500)])
+
+class CommentForm(FlaskForm):
+    author_name = StringField('Ваше имя', validators=[DataRequired(), Length(max=100)])
+    text = TextAreaField('Комментарий', validators=[DataRequired(), Length(max=500)])
+
+class TagForm(FlaskForm):
+    name = StringField('Название тега', validators=[DataRequired(), Length(max=50)])
 
 class ReviewForm(FlaskForm):
     client_name = StringField('Имя клиента', validators=[DataRequired(), Length(max=100)])
@@ -127,9 +204,42 @@ def services():
 
 @app.route('/portfolio')
 def portfolio():
-    portfolio_items = PortfolioItem.query.all()
+    page = request.args.get('page', 1, type=int)
+    per_page = 12  # Number of items per page
+    
+    # Get filters
+    category_id = request.args.get('category_id', type=int)
+    gallery_id = request.args.get('gallery_id', type=int)
+    tag_name = request.args.get('tag', type=str)
+    
+    # Build query with filters
+    query = PortfolioItem.query
+    
+    if category_id:
+        query = query.filter_by(category_id=category_id)
+    if gallery_id:
+        query = query.filter_by(gallery_id=gallery_id)
+    if tag_name:
+        query = query.join(PortfolioItem.tags).filter(PhotoTag.name.like(f'%{tag_name}%'))
+    
+    # Order by creation date (newest first)
+    query = query.order_by(PortfolioItem.created_at.desc())
+    
+    # Paginate the results
+    portfolio_items = query.paginate(page=page, per_page=per_page, error_out=False)
     categories = Category.query.all()
-    return render_template('portfolio.html', portfolio_items=portfolio_items, categories=categories)
+    galleries = Gallery.query.all()
+    tags = PhotoTag.query.all()
+    
+    return render_template('portfolio.html', 
+                          portfolio_items=portfolio_items.items,
+                          pagination=portfolio_items,
+                          categories=categories,
+                          galleries=galleries,
+                          tags=tags,
+                          current_category=category_id,
+                          current_gallery=gallery_id,
+                          current_tag=tag_name)
 
 @app.route('/about')
 def about():
@@ -171,6 +281,7 @@ def submit_request():
 
 # Admin panel
 @app.route('/admin', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def admin_login():
     form = LoginForm()
     if form.validate_on_submit():
@@ -178,8 +289,13 @@ def admin_login():
         if user and user.check_password(form.password.data):
             # Store admin session info
             session['admin_logged_in'] = True
+            # Clear failed login attempts for this IP after successful login
+            session.pop(f'failed_logins_{get_remote_address()}', None)
             return redirect(url_for('admin_dashboard'))
         else:
+            # Track failed login attempts
+            failed_attempts = session.get(f'failed_logins_{get_remote_address()}', 0)
+            session[f'failed_logins_{get_remote_address()}'] = failed_attempts + 1
             flash('Неверный логин или пароль', 'error')
     return render_template('admin/login.html', form=form)
 
@@ -312,7 +428,8 @@ def admin_portfolio():
     
     portfolio_items = PortfolioItem.query.all()
     categories = Category.query.all()
-    return render_template('admin/portfolio.html', portfolio_items=portfolio_items, categories=categories)
+    galleries = Gallery.query.all()
+    return render_template('admin/portfolio.html', portfolio_items=portfolio_items, categories=categories, galleries=galleries)
 
 @app.route('/admin/portfolio/add', methods=['GET', 'POST'])
 def admin_add_portfolio():
@@ -321,6 +438,7 @@ def admin_add_portfolio():
     
     form = PortfolioForm()
     form.category_id.choices = [(c.id, c.name) for c in Category.query.all()]
+    form.gallery_id.choices = [('', 'Без галереи')] + [(g.id, g.name) for g in Gallery.query.all()]
     
     if form.validate_on_submit():
         filename = secure_filename(form.image.data.filename)
@@ -329,10 +447,24 @@ def admin_add_portfolio():
         
         portfolio_item = PortfolioItem(
             title=form.title.data,
+            description=form.description.data,  # New field
             category_id=form.category_id.data,
+            gallery_id=form.gallery_id.data if form.gallery_id.data else None,  # Handle empty selection
             image_filename=filename
         )
         db.session.add(portfolio_item)
+        
+        # Process tags
+        if form.tags.data:
+            tag_names = [tag.strip() for tag in form.tags.data.split(',') if tag.strip()]
+            for tag_name in tag_names:
+                tag = PhotoTag.query.filter_by(name=tag_name.lower()).first()
+                if not tag:
+                    tag = PhotoTag(name=tag_name.lower())
+                    db.session.add(tag)
+                    db.session.flush()  # Get the ID before associating
+                portfolio_item.tags.append(tag)
+        
         db.session.commit()
         flash('Работа успешно добавлена!', 'success')
         return redirect(url_for('admin_portfolio'))
@@ -347,6 +479,7 @@ def admin_edit_portfolio(id):
     portfolio_item = PortfolioItem.query.get_or_404(id)
     form = PortfolioForm(obj=portfolio_item)
     form.category_id.choices = [(c.id, c.name) for c in Category.query.all()]
+    form.gallery_id.choices = [('', 'Без галереи')] + [(g.id, g.name) for g in Gallery.query.all()]
     
     if form.validate_on_submit():
         if form.image.data:
@@ -362,11 +495,28 @@ def admin_edit_portfolio(id):
             portfolio_item.image_filename = filename
         
         portfolio_item.title = form.title.data
+        portfolio_item.description = form.description.data  # Update description
         portfolio_item.category_id = form.category_id.data
+        portfolio_item.gallery_id = form.gallery_id.data if form.gallery_id.data else None  # Handle empty selection
+        
+        # Update tags
+        portfolio_item.tags.clear()  # Remove existing tags
+        if form.tags.data:
+            tag_names = [tag.strip() for tag in form.tags.data.split(',') if tag.strip()]
+            for tag_name in tag_names:
+                tag = PhotoTag.query.filter_by(name=tag_name.lower()).first()
+                if not tag:
+                    tag = PhotoTag(name=tag_name.lower())
+                    db.session.add(tag)
+                    db.session.flush()  # Get the ID before associating
+                portfolio_item.tags.append(tag)
         
         db.session.commit()
         flash('Работа успешно обновлена!', 'success')
         return redirect(url_for('admin_portfolio'))
+    
+    # Pre-populate tags field
+    form.tags.data = ', '.join([tag.name for tag in portfolio_item.tags])
     
     return render_template('admin/portfolio_form.html', form=form, title='Редактировать работу', portfolio_item=portfolio_item)
 
@@ -452,10 +602,170 @@ def admin_requests():
     categories = Category.query.all()
     return render_template('admin/requests.html', requests=requests, categories=categories)
 
-@app.route('/admin/logout')
-def admin_logout():
-    session.pop('admin_logged_in', None)
-    return redirect(url_for('index'))
+@app.route('/admin/galleries')
+def admin_galleries():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    galleries = Gallery.query.all()
+    return render_template('admin/galleries.html', galleries=galleries)
+
+@app.route('/admin/galleries/add', methods=['GET', 'POST'])
+def admin_add_gallery():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    form = GalleryForm()
+    if form.validate_on_submit():
+        # Get the first admin user as the owner (in a real app, you'd use the logged-in user)
+        admin_user = User.query.filter_by(is_admin=True).first()
+        if not admin_user:
+            admin_user = User.query.first()  # Fallback to first user if no admin
+        
+        gallery = Gallery(
+            name=form.name.data,
+            description=form.description.data,
+            user_id=admin_user.id
+        )
+        db.session.add(gallery)
+        db.session.commit()
+        flash('Галерея успешно добавлена!', 'success')
+        return redirect(url_for('admin_galleries'))
+    
+    return render_template('admin/gallery_form.html', form=form, title='Добавить галерею')
+
+@app.route('/admin/galleries/edit/<int:id>', methods=['GET', 'POST'])
+def admin_edit_gallery(id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    gallery = Gallery.query.get_or_404(id)
+    form = GalleryForm(obj=gallery)
+    
+    if form.validate_on_submit():
+        gallery.name = form.name.data
+        gallery.description = form.description.data
+        db.session.commit()
+        flash('Галерея успешно обновлена!', 'success')
+        return redirect(url_for('admin_galleries'))
+    
+    return render_template('admin/gallery_form.html', form=form, title='Редактировать галерею', gallery=gallery)
+
+@app.route('/admin/galleries/delete/<int:id>', methods=['POST'])
+def admin_delete_gallery(id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    gallery = Gallery.query.get_or_404(id)
+    
+    # Delete all photos in this gallery
+    for photo in gallery.photos:
+        if photo.image_filename:
+            img_path = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], photo.image_filename)
+            if os.path.exists(img_path):
+                os.remove(img_path)
+        db.session.delete(photo)
+    
+    db.session.delete(gallery)
+    db.session.commit()
+    flash('Галерея успешно удалена!', 'success')
+    return redirect(url_for('admin_galleries'))
+
+@app.route('/admin/tags')
+def admin_tags():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    tags = PhotoTag.query.all()
+    return render_template('admin/tags.html', tags=tags)
+
+@app.route('/admin/tags/add', methods=['GET', 'POST'])
+def admin_add_tag():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    form = TagForm()
+    if form.validate_on_submit():
+        tag = PhotoTag(name=form.name.data)
+        try:
+            db.session.add(tag)
+            db.session.commit()
+            flash('Тег успешно добавлен!', 'success')
+            return redirect(url_for('admin_tags'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Тег с таким именем уже существует!', 'error')
+    
+    return render_template('admin/tag_form.html', form=form, title='Добавить тег')
+
+@app.route('/admin/tags/edit/<int:id>', methods=['GET', 'POST'])
+def admin_edit_tag(id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    tag = PhotoTag.query.get_or_404(id)
+    form = TagForm(obj=tag)
+    
+    if form.validate_on_submit():
+        tag.name = form.name.data
+        try:
+            db.session.commit()
+            flash('Тег успешно обновлен!', 'success')
+            return redirect(url_for('admin_tags'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Тег с таким именем уже существует!', 'error')
+    
+    return render_template('admin/tag_form.html', form=form, title='Редактировать тег', tag=tag)
+
+@app.route('/admin/tags/delete/<int:id>', methods=['POST'])
+def admin_delete_tag(id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    tag = PhotoTag.query.get_or_404(id)
+    db.session.delete(tag)
+    db.session.commit()
+    flash('Тег успешно удален!', 'success')
+    return redirect(url_for('admin_tags'))
+
+@app.route('/admin/comments')
+def admin_comments():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    comments = Comment.query.order_by(Comment.created_at.desc()).all()
+    return render_template('admin/comments.html', comments=comments)
+
+@app.route('/admin/comments/delete/<int:id>', methods=['POST'])
+def admin_delete_comment(id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    comment = Comment.query.get_or_404(id)
+    db.session.delete(comment)
+    db.session.commit()
+    flash('Комментарий успешно удален!', 'success')
+    return redirect(url_for('admin_comments'))
+
+@app.route('/admin/ratings')
+def admin_ratings():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    ratings = Rating.query.order_by(Rating.score.desc()).all()
+    return render_template('admin/ratings.html', ratings=ratings)
+
+@app.route('/admin/ratings/delete/<int:id>', methods=['POST'])
+def admin_delete_rating(id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    rating = Rating.query.get_or_404(id)
+    db.session.delete(rating)
+    db.session.commit()
+    flash('Рейтинг успешно удален!', 'success')
+    return redirect(url_for('admin_ratings'))
 
 # API endpoints for frontend filtering
 @app.route('/api/portfolio/filter/<int:category_id>')

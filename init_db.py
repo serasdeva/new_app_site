@@ -1,4 +1,5 @@
-from app import app, db, User, Category, PortfolioItem, Review
+from app import app, db, User, Category, PortfolioItem, Review, Gallery, PhotoTag
+
 
 def init_database():
     with app.app_context():
@@ -8,7 +9,7 @@ def init_database():
         # Check if admin user already exists
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
-            admin = User(username='admin')
+            admin = User(username='admin', is_admin=True)
             admin.set_password('admin123')
             db.session.add(admin)
             print("Admin user created: username=admin, password=admin123")
@@ -54,6 +55,48 @@ def init_database():
             
             print("Sample categories added.")
         
+        # Add sample galleries if none exist
+        if Gallery.query.count() == 0:
+            galleries_data = [
+                {
+                    'name': 'Лучшие работы',
+                    'description': 'Избранные работы студии'
+                },
+                {
+                    'name': 'Портреты',
+                    'description': 'Портретная съемка'
+                },
+                {
+                    'name': 'Природа',
+                    'description': 'Фотографии природы'
+                }
+            ]
+            
+            # Get the admin user to assign as owner
+            admin_user = User.query.filter_by(is_admin=True).first()
+            if not admin_user:
+                admin_user = User.query.first()
+            
+            for gal_data in galleries_data:
+                gallery = Gallery(
+                    name=gal_data['name'],
+                    description=gal_data['description'],
+                    user_id=admin_user.id
+                )
+                db.session.add(gallery)
+            
+            print("Sample galleries added.")
+        
+        # Add sample tags if none exist
+        if PhotoTag.query.count() == 0:
+            tags_data = ['портрет', 'природа', 'свадьба', 'дети', 'love-story', 'предметная']
+            
+            for tag_name in tags_data:
+                tag = PhotoTag(name=tag_name)
+                db.session.add(tag)
+            
+            print("Sample tags added.")
+        
         # Add sample reviews if none exist
         if Review.query.count() == 0:
             sample_reviews = [
@@ -80,6 +123,7 @@ def init_database():
         # Commit all changes
         db.session.commit()
         print("Database initialized successfully!")
+
 
 if __name__ == '__main__':
     init_database()

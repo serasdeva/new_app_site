@@ -25,6 +25,26 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_galleries') }}">
+                            <i class="bi bi-image-fill"></i> Галереи
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_tags') }}">
+                            <i class="bi bi-tag"></i> Теги
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_comments') }}">
+                            <i class="bi bi-chat-square-text"></i> Комментарии
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_ratings') }}">
+                            <i class="bi bi-star"></i> Рейтинги
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin_reviews') }}">
                             <i class="bi bi-chat-square-text"></i> Отзывы
                         </a>
@@ -66,11 +86,44 @@
                                 {% endif %}
                             </div>
                             <div class="mb-3">
+                                {{ form.description.label(class="form-label") }}
+                                {{ form.description(class="form-control", rows="3") }}
+                                {% if form.description.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.description.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
                                 {{ form.category_id.label(class="form-label") }}
                                 {{ form.category_id(class="form-select") }}
                                 {% if form.category_id.errors %}
                                     <div class="text-danger">
                                         {% for error in form.category_id.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                {{ form.gallery_id.label(class="form-label") }}
+                                {{ form.gallery_id(class="form-select") }}
+                                {% if form.gallery_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.gallery_id.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                {{ form.tags.label(class="form-label") }}
+                                {{ form.tags(class="form-control", placeholder="Введите теги через запятую") }}
+                                {% if form.tags.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.tags.errors %}
                                             <small>{{ error }}</small>
                                         {% endfor %}
                                     </div>
