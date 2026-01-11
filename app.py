@@ -4,8 +4,8 @@ from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from wtforms import StringField, TextAreaField, SelectField, FileField, PasswordField, SubmitField
-from wtforms.validators import DataRequired, Length
+from wtforms import StringField, TextAreaField, SelectField, FileField, PasswordField, SubmitField, IntegerField
+from wtforms.validators import DataRequired, Length, Optional
 from wtforms import ValidationError
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -24,7 +24,8 @@ db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
 )
 limiter.init_app(app)
 
