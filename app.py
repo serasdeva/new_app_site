@@ -354,6 +354,11 @@ def admin_add_category():
         if form.image.data:
             filename = secure_filename(form.image.data.filename)
             filepath = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], filename)
+            
+            # Ensure upload directory exists
+            upload_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+            os.makedirs(upload_dir, exist_ok=True)
+            
             form.image.data.save(filepath)
         
         category = Category(
@@ -388,6 +393,11 @@ def admin_edit_category(id):
             
             filename = secure_filename(form.image.data.filename)
             filepath = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], filename)
+            
+            # Ensure upload directory exists
+            upload_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+            os.makedirs(upload_dir, exist_ok=True)
+            
             form.image.data.save(filepath)
             category.image_filename = filename
         
@@ -450,6 +460,11 @@ def admin_add_portfolio():
     if form.validate_on_submit():
         filename = secure_filename(form.image.data.filename)
         filepath = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], filename)
+        
+        # Ensure upload directory exists
+        upload_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+        os.makedirs(upload_dir, exist_ok=True)
+        
         form.image.data.save(filepath)
         
         portfolio_item = PortfolioItem(
@@ -498,6 +513,11 @@ def admin_edit_portfolio(id):
             
             filename = secure_filename(form.image.data.filename)
             filepath = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], filename)
+            
+            # Ensure upload directory exists
+            upload_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+            os.makedirs(upload_dir, exist_ok=True)
+            
             form.image.data.save(filepath)
             portfolio_item.image_filename = filename
         
