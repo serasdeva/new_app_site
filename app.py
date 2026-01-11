@@ -768,6 +768,12 @@ def admin_delete_rating(id):
     flash('Рейтинг успешно удален!', 'success')
     return redirect(url_for('admin_ratings'))
 
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    flash('Вы успешно вышли из системы.', 'success')
+    return redirect(url_for('admin_login'))
+
 # API endpoints for frontend filtering
 @app.route('/api/portfolio/filter/<int:category_id>')
 def filter_portfolio(category_id):
