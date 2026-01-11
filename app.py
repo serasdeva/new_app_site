@@ -160,11 +160,17 @@ class CategoryForm(FlaskForm):
     price = StringField('Цена', validators=[Length(max=50)])
     image = FileField('Изображение')
 
+def coerce_empty_to_none(value):
+    """Coerce empty strings to None for gallery_id"""
+    if value == '' or value is None:
+        return None
+    return int(value)
+
 class PortfolioForm(FlaskForm):
     title = StringField('Название', validators=[DataRequired(), Length(max=200)])
     description = TextAreaField('Описание', validators=[Length(max=500)])  # New field for description
     category_id = SelectField('Категория', coerce=int, validators=[DataRequired()])
-    gallery_id = SelectField('Галерея', coerce=int)  # New field for gallery selection
+    gallery_id = SelectField('Галерея', coerce=coerce_empty_to_none)  # New field for gallery selection
     tags = StringField('Теги (через запятую)', validators=[Length(max=200)])  # Field for tags
     image = FileField('Изображение', validators=[DataRequired()])
 
